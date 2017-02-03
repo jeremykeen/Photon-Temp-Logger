@@ -46,7 +46,7 @@
 #define DHTPIN D1
 
 // which digital pin for the Photon/Spark Core/Electron LED
-#define LEDPIN D7
+//#define LEDPIN D7
 
 // whether to use Farenheit instead of Celsius
 #define USE_FARENHEIT 1
@@ -82,6 +82,8 @@
 // Particle event
 #define PARTICLE_EVENT 1
 #define PARTICLE_EVENT_NAME "dht-logger-log"
+#define PARTICLE_EVENT_TEMP "office-temp"
+#define PARTICLE_EVENT_HUMIDITY "office-humidity"
 
 //
 // Integration Includes
@@ -120,7 +122,8 @@ char temperatureString[10];
 char heatIndexString[10];
 
 int failed = 0;
-int ver = 7;
+int ver = 9;
+int toggle = 0;
 
 // last time since we sent sensor readings
 int lastUpdate = 0;
@@ -153,10 +156,12 @@ char payload[1024];
  * Setup
  */
 void setup() {
-    pinMode(LEDPIN, OUTPUT);
-    digitalWrite(LEDPIN, HIGH);
-    //b.begin();
-    //b.allLedsOn(0,20,20);
+    //pinMode(LEDPIN, OUTPUT);
+    //digitalWrite(LEDPIN, HIGH);
+    b.begin();
+    b.allLedsOn(0,20,20);
+    delay(2000);
+    b.allLedsOff();
 
     // configure Particle variables - float isn't accepted, so we have to use string versions
     Particle.variable("temperature", &temperatureString[0], STRING);
@@ -196,14 +201,35 @@ void setup() {
 void loop() {
     int now = Time.now();
 
+
+    // When you click the second button (at the 3 o'clock position) let's turn that LED on
+    if(b.buttonOn(2)){
+
+        //pushCount++;
+        b.ledOn(3, 0, 128, 0);
+        toggle = 1;
+
+        Spark.publish("switch","on");
+    }
+    // And if button 4 pressed, then the LED should be off
+    else if (toggle==1){
+        if (b.buttonOn(4)){
+            toggle = 0;
+            Spark.publish("switch","off");
+            b.ledOff(3);
+        }
+    }
+    //wait for a second
+    delay(1000);
+
     // only run every SEND_INTERVAL seconds
     if (now - lastUpdate < SEND_INTERVAL) {
         return;
     }
 
     // turn on LED when updating
-    digitalWrite(LEDPIN, HIGH);
-    //b.allLedsOn(0,20,20);
+    //digitalWrite(LEDPIN, HIGH);
+    b.ledOn(6,0,20,20);
 
     lastUpdate = now;
 
@@ -267,10 +293,12 @@ void loop() {
 
 #if PARTICLE_EVENT
         Spark.publish(PARTICLE_EVENT_NAME, payload, 60, PRIVATE);
+        Spark.publish(PARTICLE_EVENT_TEMP, temperatureString, 60, PRIVATE);
+        Spark.publish(PARTICLE_EVENT_HUMIDITY, humidityString, 60, PRIVATE);
 #endif
     }
 
     // done updating
-    digitalWrite(LEDPIN, LOW);
-    //b.allLedsOff();
+    //digitalWrite(LEDPIN, LOW);
+    b.ledOff(6);
 }
