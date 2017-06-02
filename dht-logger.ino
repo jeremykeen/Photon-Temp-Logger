@@ -274,9 +274,11 @@ void loop() {
         aioFeedHumidity.send(humidity);
         aioFeedHeatIndex.send(heatIndex);
 #endif
-
+        String ts = String(Time.format("%Y-%m-%d %H:%M:%S"));
+        Serial.println(ts);
+        Particle.publish("time",ts,PRIVATE);
         sprintf(payload,
-            "{\"device\":\"%s\",\"temperature\":%.2f,\"humidity\":%.2f,\"heatIndex\":%.2f}",
+            "%s,%.2f,%.2f,%.2f",
             DEVICE_NAME,
             temperature,
             humidity,
@@ -292,7 +294,7 @@ void loop() {
 #endif
 
 #if PARTICLE_EVENT
-        Spark.publish(PARTICLE_EVENT_NAME, payload, 60, PRIVATE);
+        Spark.publish(PARTICLE_EVENT_NAME, ts + "," + payload, 60, PRIVATE);
         Spark.publish(PARTICLE_EVENT_TEMP, temperatureString, 60, PRIVATE);
         Spark.publish(PARTICLE_EVENT_HUMIDITY, humidityString, 60, PRIVATE);
 #endif
